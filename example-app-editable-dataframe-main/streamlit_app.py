@@ -8,7 +8,7 @@ import toml
 # Snowflake database, schema, and table name
 DATABASE = "OMNI_DATA"
 SCHEMA = "PUBLIC"
-TABLE_NAME = "SALES_REVENUE"
+TABLE_NAME = "DIM_CUSTOMER"
 
 @st.cache_data
 def convert_df(df):
@@ -76,28 +76,29 @@ def upsert_data(session, df_sel_row, table_name):
             merge_query = f"""
             MERGE INTO {table_name} AS target
             USING {staging_table} AS source
-            ON target.ORGANIZATIONID = source.ORGANIZATIONID AND target.LEVEL1FORCEID = source.LEVEL1FORCEID
+            ON target.C_CUSTKEY = source.C_CUSTKEY
             WHEN MATCHED THEN 
                 UPDATE SET 
-                    target.SALES = source.SALES,
-                    target.REVENUE = source.REVENUE
+                    target.C_NAME = source.C_NAME,
+                    target.C_ADDRESS = source.C_ADDRESS,
+                    target.C_NATIONKEY = source.C_NATIONKEY,
+                    target.C_PHONE = source.C_PHONE,
+                    target.C_ACCTBAL = source.C_ACCTBAL,
+                    target.C_MKTSEGMENT = source.C_MKTSEGMENT,
+                    target.C_COMMENT = source.C_COMMENT,
+                    target.SYSTEM_VERSION = source.SYSTEM_VERSION,
+                    target.SYSTEM_CURRENT_FLAG = source.SYSTEM_CURRENT_FLAG,
+                    target.SYSTEM_START_DATE = source.SYSTEM_START_DATE,
+                    target.SYSTEM_END_DATE = source.SYSTEM_END_DATE,
+                    target.SYSTEM_CREATE_DATE = source.SYSTEM_CREATE_DATE,
+                    target.SYSTEM_UPDATE_DATE = source.SYSTEM_UPDATE_DATE
             WHEN NOT MATCHED THEN 
-                INSERT (ORGANIZATIONID, LEVEL1FORCEID, LEVEL1ACCOUNTNAME, LEVEL1DISPLAYACCOUNTNAME, LEVEL1ACCOUNTTYPE,
-                        LEVEL1FEDERALTAXID, LEVEL1ADDRESS, LEVEL1ADDRESS2, LEVEL1CITY, LEVEL1STATE, LEVEL1COUNTY,
-                        LEVEL1POSTALCODE, LEVEL1COUNTRY, LEVEL1SEGMENTATION, LEVEL1SECTOR, LEVEL1METROAREANAME,
-                        LEVEL1METROAREATOTALPOPULATION, SECTORKEY, SECTORID, ACCOUNTORGANIZATIONID, FORCEID, SUPPLIERNAME,
-                        CONTRACTID, ACCOUNTSTATUS, RECEIPTDATE, SALES, REVENUE, BUDGETSALESAMOUNT, BUDGETREVENUEAMOUNT,
-                        SALESTERRITORYKEY, TERRITORYNAME, TERRITORYMANAGER, TERRITORYSUPERVISOR, ACCOUNTOWNER,
-                        SOURCEENTITYNAME, ORGANIZATIONNAME, CONTRACTNUMBER, CONTRACTNAME)
-                VALUES (source.ORGANIZATIONID, source.LEVEL1FORCEID, source.LEVEL1ACCOUNTNAME, source.LEVEL1DISPLAYACCOUNTNAME,
-                        source.LEVEL1ACCOUNTTYPE, source.LEVEL1FEDERALTAXID, source.LEVEL1ADDRESS, source.LEVEL1ADDRESS2,
-                        source.LEVEL1CITY, source.LEVEL1STATE, source.LEVEL1COUNTY, source.LEVEL1POSTALCODE, source.LEVEL1COUNTRY,
-                        source.LEVEL1SEGMENTATION, source.LEVEL1SECTOR, source.LEVEL1METROAREANAME, source.LEVEL1METROAREATOTALPOPULATION,
-                        source.SECTORKEY, source.SECTORID, source.ACCOUNTORGANIZATIONID, source.FORCEID, source.SUPPLIERNAME,
-                        source.CONTRACTID, source.ACCOUNTSTATUS, source.RECEIPTDATE, source.SALES, source.REVENUE,
-                        source.BUDGETSALESAMOUNT, source.BUDGETREVENUEAMOUNT, source.SALESTERRITORYKEY, source.TERRITORYNAME,
-                        source.TERRITORYMANAGER, source.TERRITORYSUPERVISOR, source.ACCOUNTOWNER, source.SOURCEENTITYNAME,
-                        source.ORGANIZATIONNAME, source.CONTRACTNUMBER, source.CONTRACTNAME)
+                INSERT (C_CUSTKEY, C_NAME, C_ADDRESS, C_NATIONKEY, C_PHONE, C_ACCTBAL, C_MKTSEGMENT, C_COMMENT, 
+                        SYSTEM_VERSION, SYSTEM_CURRENT_FLAG, SYSTEM_START_DATE, SYSTEM_END_DATE, SYSTEM_CREATE_DATE, SYSTEM_UPDATE_DATE)
+                VALUES (source.C_CUSTKEY, source.C_NAME, source.C_ADDRESS, source.C_NATIONKEY, source.C_PHONE, 
+                        source.C_ACCTBAL, source.C_MKTSEGMENT, source.C_COMMENT, source.SYSTEM_VERSION, 
+                        source.SYSTEM_CURRENT_FLAG, source.SYSTEM_START_DATE, source.SYSTEM_END_DATE, 
+                        source.SYSTEM_CREATE_DATE, source.SYSTEM_UPDATE_DATE)
             """
             session.sql(merge_query).collect()
             st.write("Merge Query Executed:", merge_query)
@@ -107,6 +108,7 @@ def upsert_data(session, df_sel_row, table_name):
             st.error(f"Error executing upsert: {e}")
     else:
         st.info("No data to upload.")
+
 
 def upload_to_snowflake(df: pd.DataFrame, table_name: str):
     """Uploads the edited dataframe to Snowflake using an upsert operation."""
